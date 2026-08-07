@@ -1,5 +1,6 @@
 # jquants-api — J-Quants API v2 Rust クライアント
 
+[![CI](https://github.com/uiuifree/rust-jquants-api/actions/workflows/ci.yml/badge.svg)](https://github.com/uiuifree/rust-jquants-api/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/jquants-api.svg)](https://crates.io/crates/jquants-api)
 [![docs.rs](https://img.shields.io/docsrs/jquants-api)](https://docs.rs/jquants-api)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
