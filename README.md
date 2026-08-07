@@ -213,10 +213,12 @@ cargo run --example daily_bars -- 7203   # 動作確認
 
 ## 謝辞
 
-エンドポイント・レスポンス型の定義は JPX Market Innovation & Research, Inc. の公式 CLI [J-Quants/jquants-cli](https://github.com/J-Quants/jquants-cli)（MIT License）を参考にしています。
+エンドポイント・レスポンス型の定義とフィールド説明は、JPX Market Innovation & Research, Inc. の公式 CLI [J-Quants/jquants-cli](https://github.com/J-Quants/jquants-cli)（MIT License）に由来します。原著作権表示とライセンスは [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) を参照してください。
 
 ## License
 
 MIT または Apache-2.0 のデュアルライセンス。
 
 Licensed under either of [MIT license](./LICENSE-MIT) or [Apache License 2.0](./LICENSE-APACHE) at your option.
+
+一部に MIT ライセンスの第三者コードに由来する部分を含みます。どちらのライセンスを選択する場合も、[THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) の著作権表示は保持してください。
