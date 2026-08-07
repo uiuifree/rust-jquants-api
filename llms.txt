@@ -1,0 +1,138 @@
+# jquants-api
+
+> Unofficial async Rust client for the J-Quants API v2 (Japanese stock market data by
+> JPX Market Innovation & Research). Covers all 25 data endpoints: equity bars, listed
+> company master, financial statements, margin trading, short selling, derivatives,
+> indices (TOPIX), timely disclosure, and bulk download. Requires a J-Quants API key.
+
+## Setup
+
+```toml
+[dependencies]
+jquants-api = "0.1"
+tokio = { version = "1", features = ["full"] }
+```
+
+Auth: get an API key at https://jpx-jquants.com/dashboard/api-keys (free plan works).
+
+```rust
+use jquants_api::{JQuantsClient, Plan};
+let client = JQuantsClient::from_env()?;            // reads JQUANTS_API_KEY
+let client = JQuantsClient::new("api-key");          // or pass directly
+let client = client.with_base_url("http://...");     // override for tests
+let client = client.with_http_client(reqwest_client); // custom timeout/proxy
+let client = client.with_plan(Plan::Free);           // rate limit to the plan's quota
+let client = client.with_rate_limit(30);             // or a custom requests/minute (0 = off)
+```
+
+All methods are `async` and must be awaited. Errors are `jquants_api::Error`:
+`Http(reqwest::Error)` | `Api { status: u16, message: String }` |
+`Decode { source, body }` | `MissingApiKey`.
+
+## Core concepts
+
+- Pagination (`pagination_key`) is followed automatically; methods return ALL pages merged.
+- `CursorPage<T> { items: Vec<T>, cursor: Option<String> }` is returned by cursor
+  endpoints (`fins_summary`, `fins_details`, `td_list`). Persist `cursor` and pass it
+  in the next query's `cursor` field to fetch only the delta since last call.
+- `FlexString`: wraps fields the API returns as string OR number OR null.
+  Deref to `&str`; use `.as_f64() -> Option<f64>` for numeric use; null becomes `""`.
+- Query structs implement `Default`; set only needed fields with `..Default::default()`.
+  Dates are strings, `YYYY-MM-DD` or `YYYYMMDD`.
+- HTTP 210 from the API means "data not yet available"; methods return what was
+  accumulated so far (possibly empty Vec) instead of an error.
+
+## Methods (on JQuantsClient)
+
+Equities:
+- `master(&MasterQuery { code, date }) -> Vec<StockMaster>` — listed company master
+- `daily_bars(&CodeDateQuery { code, date, from, to }) -> Vec<DailyBar>` — daily OHLCV,
+  raw + adjusted (`adj_close` etc.), morning/afternoon session fields
+- `am_bars(Option<&str /*code*/>) -> Vec<AmBar>` — morning-session close snapshot
+- `minute_bars(&CodeDateQuery) -> Vec<MinuteBar>` — minute bars (plan-gated)
+- `earnings_calendar() -> Vec<EarningsCalendar>` — earnings announcement schedule
+- `investor_types(&InvestorTypesQuery { section, from, to }) -> Vec<InvestorType>`
+
+Markets:
+- `breakdown(&CodeDateQuery) -> Vec<Breakdown>` — trade value/volume breakdown
+- `trading_calendar(&CalendarQuery { holiday_division, from, to }) -> Vec<Calendar>`
+- `margin_alert(&CodeDateQuery) -> Vec<MarginAlert>` — daily margin publication
+- `margin_interest(&CodeDateQuery) -> Vec<MarginInterest>` — weekly margin balance
+- `short_ratio(&ShortRatioQuery { s33, date, from, to }) -> Vec<ShortRatio>`
+- `short_sale_report(&ShortSaleReportQuery { code, disc_date, disc_date_from, disc_date_to, calc_date }) -> Vec<ShortSaleReport>`
+
+Indices:
+- `index_daily_bars(&CodeDateQuery) -> Vec<IndexDailyBar>`
+- `topix_daily_bars(&RangeQuery { from, to }) -> Vec<TopixDailyBar>`
+
+Derivatives:
+- `futures_bars(&FuturesBarsQuery { category, date, contract_flag }) -> Vec<FuturesBar>`
+- `options_bars(&OptionsBarsQuery { category, code, date, contract_flag }) -> Vec<OptionsBar>`
+- `options_225_bars(Option<&str /*date*/>) -> Vec<Options225Bar>` — Nikkei 225 options
+
+Financials:
+- `fins_summary(&FinsQuery { code, date, cursor }) -> CursorPage<FinsSummary>` (cursor)
+- `fins_details(&FinsQuery) -> CursorPage<FinsDetails>` (cursor) — `fs` field is raw serde_json::Value
+- `fins_dividend(&CodeDateQuery) -> Vec<FinsDividend>`
+- `fins_earnings_date(&EarningsDateQuery { code, date, scheduled_date }) -> Vec<EarningsDate>`
+  — exactly one of code/date/scheduled_date is required by the API
+
+EDINET (Standard plan or higher; add-on data):
+- `edinet_major_shareholders(&EdinetQuery { edinet_code, code, date }) -> Vec<MajorShareholdersDoc>`
+- `edinet_cross_shareholdings(&EdinetQuery) -> Vec<CrossShareholdingsDoc>`
+- `edinet_large_volume_shareholders(&EdinetQuery) -> Vec<LargeVolumeShareholdersDoc>`
+- Note: edinet_code and code cannot be specified together.
+
+Timely disclosure:
+- `td_list(&TdListQuery { date, code, from, to, disc_items, cursor }) -> CursorPage<TdList>`
+- `td_bulk() -> TdBulk { last_updated, url }`
+- `td_files(disc_no: &str, docs: Option<&str>) -> TdFiles` — PDF/XBRL URLs
+
+Bulk download (for large ranges; prefer over looping single calls):
+- `bulk_list(&BulkListQuery { endpoint, date, from, to }) -> Vec<BulkListItem>`
+- `bulk_get(&BulkGetQuery { key, endpoint, date }) -> String` — presigned file URL
+- Tick data (`/equities/trades`) is CSV-only per the API spec — there is NO JSON method;
+  fetch it via bulk_list/bulk_get with endpoint "/equities/trades".
+
+## Common pitfalls
+
+- Free plan data is ~2 years with a 12-week delay; querying newer dates returns an
+  Api error or empty data. Light=5y, Standard=10y, Premium=full history. Check
+  https://jpx-jquants.com/ja/spec/data-spec for endpoint/plan availability.
+- Rate limiting is OFF by default. Enable it with `with_plan(Plan::Free|Light|Standard|Premium)`
+  (5/60/120/500 requests per minute, per the official pricing as of 2026-08) or
+  `with_rate_limit(n)`. The limiter waits (never errors) and also throttles each internal
+  pagination request. On `Api { status: 429 }` back off anyway.
+  For bulk historical loads use `bulk_list`/`bulk_get` instead of looping daily_bars.
+- `CodeDateQuery::code("7203")` is a shortcut for code-only queries.
+- Stock codes are strings; the API uses both 4-digit ("7203") and 5-digit ("72030")
+  representations depending on endpoint — pass what the API docs specify.
+- Do NOT redistribute fetched data; J-Quants terms restrict usage to personal analysis.
+
+## Example
+
+```rust
+use jquants_api::{CodeDateQuery, JQuantsClient};
+
+#[tokio::main]
+async fn main() -> Result<(), jquants_api::Error> {
+    let client = JQuantsClient::from_env()?;
+    let bars = client
+        .daily_bars(&CodeDateQuery {
+            code: Some("7203".into()),
+            from: Some("2026-01-01".into()),
+            ..Default::default()
+        })
+        .await?;
+    for b in &bars {
+        println!("{} close={:?} adj_close={:?}", b.date, b.close, b.adj_close);
+    }
+    Ok(())
+}
+```
+
+## Links
+
+- Docs: https://docs.rs/jquants-api
+- J-Quants API reference: https://jpx-jquants.com/ja/spec
+- Official CLI (reference implementation): https://github.com/J-Quants/jquants-cli
