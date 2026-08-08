@@ -33,6 +33,17 @@ impl<'de> Deserialize<'de> for FlexString {
     }
 }
 
+/// `null` を既定値として受ける。`#[serde(default)]` は「項目が無い」場合しか効かず、
+/// 明示的な `null` では失敗するため、配列項目にはこちらを使う。
+/// EDINET の応答は同じ項目を配列でも null でも返してくる
+pub fn null_as_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    Ok(Option::<T>::deserialize(deserializer)?.unwrap_or_default())
+}
+
 impl Serialize for FlexString {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&self.0)
@@ -62,6 +73,25 @@ mod tests {
         assert_eq!(v[0].0, "123.5");
         assert_eq!(v[1].0, "42");
         assert_eq!(v[2].0, "");
+    }
+
+    #[test]
+    fn null_becomes_empty_vec() {
+        #[derive(Deserialize)]
+        struct T {
+            #[serde(default, deserialize_with = "null_as_default")]
+            xs: Vec<i32>,
+        }
+        // 項目が無い場合も、明示的な null の場合も空になる
+        assert!(serde_json::from_str::<T>(r#"{}"#).unwrap().xs.is_empty());
+        assert!(serde_json::from_str::<T>(r#"{"xs":null}"#)
+            .unwrap()
+            .xs
+            .is_empty());
+        assert_eq!(
+            serde_json::from_str::<T>(r#"{"xs":[1,2]}"#).unwrap().xs,
+            vec![1, 2]
+        );
     }
 
     #[test]

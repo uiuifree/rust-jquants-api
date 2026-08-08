@@ -13,7 +13,7 @@ pub struct MajorShareholdersDoc {
     /// 書類管理番号
     #[serde(rename = "DocId")]
     #[serde(default)]
-    pub doc_id: String,
+    pub doc_id: FlexString,
     /// 銘柄コード
     #[serde(rename = "Code")]
     #[serde(default)]
@@ -21,7 +21,7 @@ pub struct MajorShareholdersDoc {
     /// 提出者の EDINET コード
     #[serde(rename = "EdinetCode")]
     #[serde(default)]
-    pub edinet_code: String,
+    pub edinet_code: FlexString,
     /// 提出者名
     #[serde(rename = "FilerName")]
     #[serde(default)]
@@ -37,7 +37,7 @@ pub struct MajorShareholdersDoc {
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     #[serde(default)]
-    pub sub_date: String,
+    pub sub_date: FlexString,
     /// 提出時刻
     #[serde(rename = "SubTime")]
     #[serde(default)]
@@ -52,7 +52,7 @@ pub struct MajorShareholdersDoc {
     pub per_en: FlexString,
     /// 大株主の一覧
     #[serde(rename = "Hldrs")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub hldrs: Vec<MajorShareholder>,
 }
 
@@ -87,7 +87,7 @@ pub struct CrossShareholdingsDoc {
     /// 書類管理番号
     #[serde(rename = "DocId")]
     #[serde(default)]
-    pub doc_id: String,
+    pub doc_id: FlexString,
     /// 銘柄コード
     #[serde(rename = "Code")]
     #[serde(default)]
@@ -95,7 +95,7 @@ pub struct CrossShareholdingsDoc {
     /// 提出者の EDINET コード
     #[serde(rename = "EdinetCode")]
     #[serde(default)]
-    pub edinet_code: String,
+    pub edinet_code: FlexString,
     /// 提出者名
     #[serde(rename = "FilerName")]
     #[serde(default)]
@@ -111,7 +111,7 @@ pub struct CrossShareholdingsDoc {
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     #[serde(default)]
-    pub sub_date: String,
+    pub sub_date: FlexString,
     /// 提出時刻
     #[serde(rename = "SubTime")]
     #[serde(default)]
@@ -211,11 +211,11 @@ pub struct CrossShareholdingHolder {
     pub non_listed_inc_rsn: FlexString,
     /// 特定投資株式の明細
     #[serde(rename = "Spec")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub spec: Vec<CrossShareholdingIssue>,
     /// みなし保有株式の明細
     #[serde(rename = "Deem")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub deem: Vec<CrossShareholdingIssue>,
     /// 特定投資株式の注記
     #[serde(rename = "SpecFn")]
@@ -294,7 +294,7 @@ pub struct LargeVolumeShareholdersDoc {
     /// 書類管理番号
     #[serde(rename = "DocId")]
     #[serde(default)]
-    pub doc_id: String,
+    pub doc_id: FlexString,
     /// 発行者の銘柄コード
     #[serde(rename = "Code")]
     #[serde(default)]
@@ -302,7 +302,7 @@ pub struct LargeVolumeShareholdersDoc {
     /// 発行者の EDINET コード
     #[serde(rename = "EdinetCode")]
     #[serde(default)]
-    pub edinet_code: String,
+    pub edinet_code: FlexString,
     /// 発行者名
     #[serde(rename = "IsrName")]
     #[serde(default)]
@@ -314,7 +314,7 @@ pub struct LargeVolumeShareholdersDoc {
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     #[serde(default)]
-    pub sub_date: String,
+    pub sub_date: FlexString,
     /// 提出時刻
     #[serde(rename = "SubTime")]
     #[serde(default)]
@@ -349,7 +349,7 @@ pub struct LargeVolumeShareholdersDoc {
     pub total_shs_ratio_last: FlexString,
     /// 提出者・共同保有者の一覧
     #[serde(rename = "Hldrs")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub hldrs: Vec<LargeVolumeHolder>,
 }
 
@@ -390,14 +390,61 @@ pub struct LargeVolumeHolder {
     pub total_fund: FlexString,
     /// 最近 60 日間の取得・処分の状況（構造は公式リファレンス参照）
     #[serde(rename = "AcqDisp")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub acq_disp: Vec<Value>,
     /// 借入先の一覧（構造は公式リファレンス参照）
     #[serde(rename = "BrwList")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub brw_list: Vec<Value>,
     /// 信用取引等の一覧（構造は公式リファレンス参照）
     #[serde(rename = "CredList")]
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::models::flex::null_as_default")]
     pub cred_list: Vec<Value>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 2021-07-02 の大量保有報告書で実際に落ちた応答。
+    /// `ChgRsn` / `HldrCode` / `TotalShsRatioLast` が null で返る。
+    /// `Code`・`HldrTypeCode` に続く3度目の同じ失敗だったため、
+    /// 素の String を全廃し Vec も null を受けるようにした
+    #[test]
+    fn large_volume_accepts_nulls_seen_in_production() {
+        let body = r#"{
+          "DocId": "S100LIG7", "Code": "40690", "EdinetCode": "E36653",
+          "IsrName": "株式会社ＢｌｕｅＭｅｍｅ", "DocTypeCode": "350",
+          "SubDate": "2021-07-02", "SubTime": "13:47:00",
+          "LargeHldgTypeCode": "1", "DocTitle": "大量保有報告書",
+          "ChgRsn": null, "TotalShsHeld": 742500, "TotalShsRatio": 0.2267,
+          "TotalShsRatioLast": null, "TotalOutStks": 3199946,
+          "Hldrs": [{
+            "HldrName": "松岡 真功", "HldrNameEn": "Masanori Matsuoka",
+            "HldrEdinetCode": "E36650", "HldrCode": null,
+            "LargeHldrTypeCode": "1", "LargeHldrTypeRaw": "個人",
+            "AcqDisp": null, "BrwList": null, "CredList": null
+          }]
+        }"#;
+        let d: LargeVolumeShareholdersDoc = serde_json::from_str(body).unwrap();
+        assert_eq!(&*d.doc_id, "S100LIG7");
+        assert!(d.chg_rsn.is_empty(), "null は空文字列になる");
+        assert!(d.total_shs_ratio_last.is_empty());
+        assert_eq!(d.hldrs.len(), 1);
+        // LargeHldrTypeCode は別名として HldrTypeCode に入る
+        assert_eq!(&*d.hldrs[0].hldr_type_code, "1");
+        // null の配列は空として受ける
+        assert!(d.hldrs[0].acq_disp.is_empty());
+    }
+
+    /// 識別子まで null で来ても落ちないこと。
+    /// 非上場の提出者では Code が null になる事例が既にあった
+    #[test]
+    fn identifiers_may_be_null() {
+        let body = r#"{"DocId": null, "Code": null, "EdinetCode": null,
+                       "SubDate": null, "Hldrs": null}"#;
+        let d: LargeVolumeShareholdersDoc = serde_json::from_str(body).unwrap();
+        assert!(d.doc_id.is_empty() && d.edinet_code.is_empty() && d.sub_date.is_empty());
+        assert!(d.hldrs.is_empty());
+    }
 }

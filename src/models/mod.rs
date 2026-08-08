@@ -3,7 +3,7 @@ mod derivatives;
 mod edinet;
 mod equities;
 mod fins;
-mod flex;
+pub mod flex;
 mod indices;
 mod markets;
 mod td;
