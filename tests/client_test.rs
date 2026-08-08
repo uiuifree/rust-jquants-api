@@ -434,3 +434,52 @@ async fn edinet_accepts_null_string_fields() {
     assert_eq!(docs[0].hldrs[0].shs_held.as_f64(), Some(207_070_600.0));
     assert_eq!(docs[0].hldrs[0].shs_ratio.as_f64(), Some(0.3835));
 }
+
+#[tokio::test]
+async fn edinet_tolerates_missing_and_renamed_fields() {
+    // 実 API では書類種別により項目自体が欠け、保有者区分は
+    // LargeHldrTypeCode という名前で返ることがある
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/edinet/large-volume-shareholders"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [{
+                "DocId": "S000TEST",
+                "Code": "00010",
+                "EdinetCode": "E00001",
+                "IsrName": "テスト株式会社",
+                "DocTypeCode": "350",
+                "SubDate": "2026-01-05",
+                "SubTime": "15:54:00",
+                "LargeHldgTypeCode": "1",
+                "DocTitle": "大量保有報告書",
+                "ChgRsn": null,
+                "TotalShsHeld": null,
+                "TotalOutStks": 40050000,
+                "Hldrs": [{
+                    "HldrName": "テスト投資会社",
+                    "HldrEdinetCode": "E00002",
+                    "HldrCode": null,
+                    "LargeHldrTypeCode": "2"
+                }]
+            }],
+            "pagination_key": null
+        })))
+        .mount(&server)
+        .await;
+
+    let docs = client_for(&server)
+        .edinet_large_volume_shareholders(&EdinetQuery::default())
+        .await
+        .unwrap();
+
+    assert_eq!(docs.len(), 1);
+    // 欠落した項目は空、null も空になる
+    assert!(docs[0].total_shs_ratio.is_empty());
+    assert!(docs[0].total_shs_held.is_empty());
+    assert_eq!(docs[0].total_out_stks.as_f64(), Some(40_050_000.0));
+    // 別名でも保有者区分が読める
+    assert_eq!(&*docs[0].hldrs[0].hldr_type_code, "2");
+    assert!(docs[0].hldrs[0].shs_held.is_empty());
+}

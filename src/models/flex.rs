@@ -5,7 +5,7 @@ use std::ops::Deref;
 
 /// J-Quants API は同じ項目を string / number / null のいずれでも返すことがあるため、
 /// どれで来ても文字列として受け取る newtype。null は空文字列になる。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct FlexString(pub String);
 
 impl FlexString {
