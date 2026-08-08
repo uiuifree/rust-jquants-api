@@ -390,3 +390,47 @@ async fn td_files_decodes_object_response() {
     );
     assert!(files.files.xbrl.is_none());
 }
+
+#[tokio::test]
+async fn edinet_accepts_null_string_fields() {
+    // 非上場の提出者は Code が null になる（実 API で発生した応答パターン）
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/edinet/major-shareholders"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [{
+                "DocId": "S000TEST",
+                "Code": null,
+                "EdinetCode": "E00001",
+                "FilerName": "テスト株式会社",
+                "FilerNameEn": null,
+                "DocTypeCode": "120",
+                "SubDate": "2026-01-05",
+                "SubTime": "15:19:00",
+                "PerSt": "2025-01-01",
+                "PerEn": "2025-12-31",
+                "Hldrs": [{
+                    "Rank": 1,
+                    "HldrName": "テスト保有者",
+                    "HldrAddr": null,
+                    "ShsHeld": 207070600,
+                    "ShsRatio": 0.3835
+                }]
+            }],
+            "pagination_key": null
+        })))
+        .mount(&server)
+        .await;
+
+    let docs = client_for(&server)
+        .edinet_major_shareholders(&EdinetQuery::default())
+        .await
+        .unwrap();
+
+    assert_eq!(docs.len(), 1);
+    assert!(docs[0].code.is_empty()); // null は空文字列になる
+    assert_eq!(&*docs[0].filer_name, "テスト株式会社");
+    assert_eq!(docs[0].hldrs[0].shs_held.as_f64(), Some(207_070_600.0));
+    assert_eq!(docs[0].hldrs[0].shs_ratio.as_f64(), Some(0.3835));
+}

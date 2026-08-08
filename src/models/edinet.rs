@@ -15,31 +15,31 @@ pub struct MajorShareholdersDoc {
     pub doc_id: String,
     /// 銘柄コード
     #[serde(rename = "Code")]
-    pub code: String,
+    pub code: FlexString,
     /// 提出者の EDINET コード
     #[serde(rename = "EdinetCode")]
     pub edinet_code: String,
     /// 提出者名
     #[serde(rename = "FilerName")]
-    pub filer_name: String,
+    pub filer_name: FlexString,
     /// 提出者名（英語）
     #[serde(rename = "FilerNameEn")]
-    pub filer_name_en: String,
+    pub filer_name_en: FlexString,
     /// 書類種別コード
     #[serde(rename = "DocTypeCode")]
-    pub doc_type_code: String,
+    pub doc_type_code: FlexString,
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     pub sub_date: String,
     /// 提出時刻
     #[serde(rename = "SubTime")]
-    pub sub_time: String,
+    pub sub_time: FlexString,
     /// 対象期間開始日
     #[serde(rename = "PerSt")]
-    pub per_st: String,
+    pub per_st: FlexString,
     /// 対象期間終了日
     #[serde(rename = "PerEn")]
-    pub per_en: String,
+    pub per_en: FlexString,
     /// 大株主の一覧
     #[serde(rename = "Hldrs")]
     pub hldrs: Vec<MajorShareholder>,
@@ -53,10 +53,10 @@ pub struct MajorShareholder {
     pub rank: FlexString,
     /// 大株主の氏名・名称
     #[serde(rename = "HldrName")]
-    pub hldr_name: String,
+    pub hldr_name: FlexString,
     /// 大株主の住所・所在地
     #[serde(rename = "HldrAddr")]
-    pub hldr_addr: String,
+    pub hldr_addr: FlexString,
     /// 所有株式数
     #[serde(rename = "ShsHeld")]
     pub shs_held: FlexString,
@@ -73,31 +73,31 @@ pub struct CrossShareholdingsDoc {
     pub doc_id: String,
     /// 銘柄コード
     #[serde(rename = "Code")]
-    pub code: String,
+    pub code: FlexString,
     /// 提出者の EDINET コード
     #[serde(rename = "EdinetCode")]
     pub edinet_code: String,
     /// 提出者名
     #[serde(rename = "FilerName")]
-    pub filer_name: String,
+    pub filer_name: FlexString,
     /// 提出者名（英語）
     #[serde(rename = "FilerNameEn")]
-    pub filer_name_en: String,
+    pub filer_name_en: FlexString,
     /// 書類種別コード
     #[serde(rename = "DocTypeCode")]
-    pub doc_type_code: String,
+    pub doc_type_code: FlexString,
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     pub sub_date: String,
     /// 提出時刻
     #[serde(rename = "SubTime")]
-    pub sub_time: String,
+    pub sub_time: FlexString,
     /// 対象期間開始日
     #[serde(rename = "PerSt")]
-    pub per_st: String,
+    pub per_st: FlexString,
     /// 対象期間終了日
     #[serde(rename = "PerEn")]
-    pub per_en: String,
+    pub per_en: FlexString,
     /// 提出会社の保有状況
     #[serde(rename = "Report")]
     pub report: Option<CrossShareholdingHolder>,
@@ -114,7 +114,7 @@ pub struct CrossShareholdingsDoc {
 pub struct CrossShareholdingHolder {
     /// 保有会社名
     #[serde(rename = "HldrName")]
-    pub hldr_name: String,
+    pub hldr_name: FlexString,
     /// 保有会社の銘柄コード
     #[serde(rename = "HldrCode")]
     pub hldr_code: FlexString,
@@ -184,7 +184,7 @@ pub struct CrossShareholdingHolder {
 pub struct CrossShareholdingIssue {
     /// 発行者名
     #[serde(rename = "IsrName")]
-    pub isr_name: String,
+    pub isr_name: FlexString,
     /// 発行者の銘柄コード
     #[serde(rename = "IsrCode")]
     pub isr_code: FlexString,
@@ -234,28 +234,28 @@ pub struct LargeVolumeShareholdersDoc {
     pub doc_id: String,
     /// 発行者の銘柄コード
     #[serde(rename = "Code")]
-    pub code: String,
+    pub code: FlexString,
     /// 発行者の EDINET コード
     #[serde(rename = "EdinetCode")]
     pub edinet_code: String,
     /// 発行者名
     #[serde(rename = "IsrName")]
-    pub isr_name: String,
+    pub isr_name: FlexString,
     /// 書類種別コード
     #[serde(rename = "DocTypeCode")]
-    pub doc_type_code: String,
+    pub doc_type_code: FlexString,
     /// 提出日 (YYYY-MM-DD)
     #[serde(rename = "SubDate")]
     pub sub_date: String,
     /// 提出時刻
     #[serde(rename = "SubTime")]
-    pub sub_time: String,
+    pub sub_time: FlexString,
     /// 報告義務発生事由コード
     #[serde(rename = "LargeHldgTypeCode")]
-    pub large_hldg_type_code: String,
+    pub large_hldg_type_code: FlexString,
     /// 書類タイトル
     #[serde(rename = "DocTitle")]
-    pub doc_title: String,
+    pub doc_title: FlexString,
     /// 変更事由
     #[serde(rename = "ChgRsn")]
     pub chg_rsn: FlexString,
@@ -281,7 +281,7 @@ pub struct LargeVolumeShareholdersDoc {
 pub struct LargeVolumeHolder {
     /// 保有者名
     #[serde(rename = "HldrName")]
-    pub hldr_name: String,
+    pub hldr_name: FlexString,
     /// 保有者名（英語）
     #[serde(rename = "HldrNameEn")]
     pub hldr_name_en: FlexString,
