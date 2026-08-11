@@ -384,11 +384,34 @@ async fn td_files_decodes_object_response() {
         .unwrap();
 
     assert_eq!(files.disc_no, "20260105000001");
-    assert_eq!(
-        files.files.pdf.as_deref(),
-        Some("https://example.invalid/a.pdf")
-    );
-    assert!(files.files.xbrl.is_none());
+    let inner = files.files.expect("files が返っている");
+    assert_eq!(inner.pdf.as_deref(), Some("https://example.invalid/a.pdf"));
+    assert!(inner.xbrl.is_none());
+}
+
+/// 書類が1本も無い開示では `files` が null で返る。
+/// 2025-11-05 の招集通知など、実際にデコードで落ちた（過去5年で700件ほどある）
+#[tokio::test]
+async fn td_files_accepts_null_files() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/td/files"))
+        .and(query_param("discNo", "20251104586107"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "discNo": "20251104586107",
+            "files": null
+        })))
+        .mount(&server)
+        .await;
+
+    let files = client_for(&server)
+        .td_files("20251104586107", None)
+        .await
+        .unwrap();
+
+    assert_eq!(files.disc_no, "20251104586107");
+    assert!(files.files.is_none());
 }
 
 #[tokio::test]

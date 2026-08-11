@@ -27,7 +27,7 @@ API reference.
 
 ```toml
 [dependencies]
-jquants-api = "0.1"
+jquants-api = "0.2"
 tokio = { version = "1", features = ["full"] }
 ```
 

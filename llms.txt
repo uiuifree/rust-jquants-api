@@ -85,8 +85,13 @@ EDINET (Standard plan or higher; add-on data):
 
 Timely disclosure:
 - `td_list(&TdListQuery { date, code, from, to, disc_items, cursor }) -> CursorPage<TdList>`
-- `td_bulk() -> TdBulk { last_updated, url }`
-- `td_files(disc_no: &str, docs: Option<&str>) -> TdFiles` — PDF/XBRL URLs
+  — `date` or `code` is required; the response carries no cursor in practice.
+- `td_bulk() -> TdBulk { last_updated, url }` — one gzipped CSV with the last 5 years
+- `td_files(disc_no: &str, docs: Option<&str>) -> TdFiles` — PDF/XBRL URLs, one
+  disclosure per call (`date`/`code` are rejected; passing two `discNo` returns only
+  the last one). `TdFiles::files` is `Option` because it comes back `null` when the
+  disclosure has no documents at all (`TdList::docs` empty) — AGM convocation notices
+  and the like, roughly 700 out of 770k over 5 years.
 
 Bulk download (for large ranges; prefer over looping single calls):
 - `bulk_list(&BulkListQuery { endpoint, date, from, to }) -> Vec<BulkListItem>`

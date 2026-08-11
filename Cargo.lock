@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "jquants-api"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "dotenvy",
  "reqwest",

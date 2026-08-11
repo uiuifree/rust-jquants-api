@@ -63,6 +63,11 @@ pub struct TdFiles {
     /// 開示番号（14桁）
     #[serde(rename = "discNo")]
     pub disc_no: String,
-    /// 各書類の取得先URL
-    pub files: TdFilesInner,
+    /// 各書類の取得先 URL。
+    ///
+    /// **書類が1本も無い開示では `null` が返る。** 一覧（[`TdList::docs`]）が
+    /// 空の開示がこれにあたり、株主総会の招集通知や配当予想の修正など、
+    /// 過去5年で700件ほどある。
+    #[serde(default)]
+    pub files: Option<TdFilesInner>,
 }

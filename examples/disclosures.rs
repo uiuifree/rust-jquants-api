@@ -62,16 +62,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 最新開示の書類 URL
     if let Some(latest) = page.items.last() {
-        let files = retry!(client.td_files(&latest.disc_no, None))?;
+        let got = retry!(client.td_files(&latest.disc_no, None))?;
         println!("最新開示の書類 ({}):", latest.title);
-        if let Some(pdf) = &files.files.pdf {
-            println!("  PDF:  {pdf}");
-        }
-        if let Some(s) = &files.files.summary_pdf {
-            println!("  要約: {s}");
-        }
-        if let Some(x) = &files.files.xbrl {
-            println!("  XBRL: {x}");
+        match &got.files {
+            // 書類が1本も無い開示（招集通知など）では files が null で返る
+            None => println!("  （この開示に書類は付いていない）"),
+            Some(files) => {
+                if let Some(pdf) = &files.pdf {
+                    println!("  PDF:  {pdf}");
+                }
+                if let Some(s) = &files.summary_pdf {
+                    println!("  要約: {s}");
+                }
+                if let Some(x) = &files.xbrl {
+                    println!("  XBRL: {x}");
+                }
+            }
         }
     }
     Ok(())
