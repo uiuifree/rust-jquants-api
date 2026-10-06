@@ -206,6 +206,17 @@ cargo test --test live_test              # 実 API 疎通テスト
 cargo run --example daily_bars -- 7203   # 動作確認
 ```
 
+### リリース
+
+`Cargo.toml` の `version` を上げて main に入れたあと、同じ番号のタグを push すると crates.io に公開されます。
+
+```sh
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+タグと `version` の照合・CI が通ると公開の直前で承認待ちになり、GitHub の Actions の画面で承認したときだけ `cargo publish` が走ります。
+
 ## 注意事項
 
 - **非公式クレートです。** JPX・JPX 総研とは無関係のコミュニティ実装で、API 仕様・利用条件の正は J-Quants 公式ドキュメントです
