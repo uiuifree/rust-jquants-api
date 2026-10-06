@@ -16,7 +16,7 @@ API reference.
 ## 特徴
 
 - **J-Quants API v2 対応**（`https://api.jquants.com/v2`・`x-api-key` 認証）
-- **全 29 データ系エンドポイントを型付きでカバー** — 株価四本値（日足・前場・分足）、上場銘柄マスタ、決算発表予定日、投資部門別売買状況、売買内訳、営業日カレンダー、信用取引残高、空売り比率・残高報告、指数・TOPIX、先物・オプション、財務諸表サマリー・詳細・配当、EDINET（大株主・政策保有株式・大量保有報告書）、適時開示、一括ダウンロード
+- **全 30 データ系エンドポイントを型付きでカバー** — 株価四本値（日足・前場・分足）、上場銘柄マスタ、バリュエーション指標、決算発表予定日、投資部門別売買状況、売買内訳、営業日カレンダー、信用取引残高、空売り比率・残高報告、指数・TOPIX、先物・オプション、財務諸表サマリー・詳細・配当、EDINET（大株主・政策保有株式・大量保有報告書）、適時開示、一括ダウンロード
 - **ページ分割の自動追従** — `pagination_key` をライブラリが処理し、全件を結合して返す
 - **差分取得（cursor）対応** — 財務諸表・適時開示は前回の続きから取得できる
 - **ゆらぎのある応答を吸収** — string / number / null が混在する項目は `FlexString`（`as_f64()` 付き）で安全に受け取る
@@ -27,7 +27,7 @@ API reference.
 
 ```toml
 [dependencies]
-jquants-api = "0.2"
+jquants-api = "0.3"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -116,12 +116,13 @@ async fn market_info(client: &JQuantsClient) -> Result<(), jquants_api::Error> {
 | `daily_bars` | `/equities/bars/daily` | 株価日足（調整前後・前後場込み） |
 | `am_bars` | `/equities/bars/daily/am` | 前場終値時点の株価 |
 | `minute_bars` | `/equities/bars/minute` | 株価分足 |
-| `earnings_calendar` | `/equities/earnings-calendar` | 決算発表予定 |
+| `valuation` | `/equities/valuation` | バリュエーション指標（EPS・BPS・ROE・PER・PBR・時価総額） |
+| `earnings_calendar` | `/equities/earnings-calendar` | 決算発表予定（3・9月期決算会社のみ） |
 | `investor_types` | `/equities/investor-types` | 投資部門別売買状況 |
 | `breakdown` | `/markets/breakdown` | 売買内訳 |
 | `trading_calendar` | `/markets/calendar` | 営業日カレンダー |
 | `margin_alert` | `/markets/margin-alert` | 日々公表信用取引残高 |
-| `margin_interest` | `/markets/margin-interest` | 信用取引週末残高 |
+| `margin_interest` | `/markets/margin-interest` | 信用取引残高（2026-09-25 申込分以降は日次、それ以前は週末時点） |
 | `short_ratio` | `/markets/short-ratio` | 業種別空売り比率 |
 | `short_sale_report` | `/markets/short-sale-report` | 空売り残高報告 |
 | `index_daily_bars` | `/indices/bars/daily` | 指数日足 |

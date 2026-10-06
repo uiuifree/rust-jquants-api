@@ -50,14 +50,22 @@ Equities:
   raw + adjusted (`adj_close` etc.), morning/afternoon session fields
 - `am_bars(Option<&str /*code*/>) -> Vec<AmBar>` — morning-session close snapshot
 - `minute_bars(&CodeDateQuery) -> Vec<MinuteBar>` — minute bars (plan-gated)
+- `valuation(&CodeDateQuery) -> Vec<Valuation>` — daily valuation metrics (EPS, BPS, ROE,
+  PER, PBR, market cap and forward values); `code` or `date` is required. All metrics are
+  `Option<f64>` and come back `None` for ETFs etc. ROE is a fraction (0.12 = 12%)
 - `earnings_calendar() -> Vec<EarningsCalendar>` — earnings announcement schedule
+  (companies with March/September fiscal year ends only; use `fins_earnings_date` otherwise)
 - `investor_types(&InvestorTypesQuery { section, from, to }) -> Vec<InvestorType>`
 
 Markets:
 - `breakdown(&CodeDateQuery) -> Vec<Breakdown>` — trade value/volume breakdown
 - `trading_calendar(&CalendarQuery { holiday_division, from, to }) -> Vec<Calendar>`
 - `margin_alert(&CodeDateQuery) -> Vec<MarginAlert>` — daily margin publication
-- `margin_interest(&CodeDateQuery) -> Vec<MarginInterest>` — weekly margin balance
+- `margin_interest(&MarginInterestQuery { code, date, from, to, published_date }) -> Vec<MarginInterest>`
+  — margin balance; daily from application date 2026-09-25, week-end only before that.
+  One of code/date/published_date is required; `published_date` cannot be combined with
+  date/from/to. `pub_date` and the six `*_val` (amount) fields are empty for the older
+  weekly rows
 - `short_ratio(&ShortRatioQuery { s33, date, from, to }) -> Vec<ShortRatio>`
 - `short_sale_report(&ShortSaleReportQuery { code, disc_date, disc_date_from, disc_date_to, calc_date }) -> Vec<ShortSaleReport>`
 

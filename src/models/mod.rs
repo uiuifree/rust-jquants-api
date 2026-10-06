@@ -14,7 +14,9 @@ pub use edinet::{
     CrossShareholdingHolder, CrossShareholdingIssue, CrossShareholdingsDoc, LargeVolumeHolder,
     LargeVolumeShareholdersDoc, MajorShareholder, MajorShareholdersDoc,
 };
-pub use equities::{AmBar, DailyBar, EarningsCalendar, InvestorType, MinuteBar, StockMaster};
+pub use equities::{
+    AmBar, DailyBar, EarningsCalendar, InvestorType, MinuteBar, StockMaster, Valuation,
+};
 pub use fins::{EarningsDate, FinsDetails, FinsDividend, FinsSummary};
 pub use flex::FlexString;
 pub use indices::{IndexDailyBar, TopixDailyBar};

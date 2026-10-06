@@ -326,6 +326,18 @@ pub struct FinsSummary {
     /// 連結EPS通期予想（翌期）
     #[serde(rename = "NxFNCEPS")]
     pub nx_f_nc_eps: FlexString,
+    /// 自己資本
+    #[serde(rename = "ShEq")]
+    pub sh_eq: FlexString,
+    /// 自己資本_非連結
+    #[serde(rename = "NCShEq")]
+    pub nc_sh_eq: FlexString,
+    /// 自己資本利益率
+    #[serde(rename = "ROE")]
+    pub roe: FlexString,
+    /// 自己資本利益率_非連結
+    #[serde(rename = "NCROE")]
+    pub nc_roe: FlexString,
 }
 
 /// 財務諸表詳細（`/fins/details`）。`fs` は勘定科目の可変な集合のため JSON のまま保持する
@@ -449,4 +461,45 @@ pub struct FinsDividend {
     /// 特別配当額
     #[serde(rename = "SpecDivRate")]
     pub spec_div_rate: FlexString,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 自己資本と ROE の 4 項目は後から API に追加された。
+    /// 該当しない項目（非連結など）は他の数値項目と同じく空文字列で返る
+    #[test]
+    fn fins_summary_decodes_equity_and_roe() {
+        let body = r#"{
+          "DiscDate": "2026-01-05", "DiscTime": "", "Code": "00010", "DiscNo": "",
+          "DocType": "", "CurPerType": "", "CurPerSt": "", "CurPerEn": "", "CurFYSt": "",
+          "CurFYEn": "", "NxtFYSt": "", "NxtFYEn": "", "Sales": "", "OP": "", "OdP": "",
+          "NP": "", "EPS": "", "DEPS": "", "TA": "", "Eq": "", "EqAR": "", "BPS": "",
+          "CFO": "", "CFI": "", "CFF": "", "CashEq": "", "Div1Q": "", "Div2Q": "",
+          "Div3Q": "", "DivFY": "", "DivAnn": "", "DivUnit": "", "DivTotalAnn": "",
+          "PayoutRatioAnn": "", "FDiv1Q": "", "FDiv2Q": "", "FDiv3Q": "", "FDivFY": "",
+          "FDivAnn": "", "FDivUnit": "", "FDivTotalAnn": "", "FPayoutRatioAnn": "",
+          "NxFDiv1Q": "", "NxFDiv2Q": "", "NxFDiv3Q": "", "NxFDivFY": "", "NxFDivAnn": "",
+          "NxFDivUnit": "", "NxFPayoutRatioAnn": "", "FSales2Q": "", "FOP2Q": "",
+          "FOdP2Q": "", "FNP2Q": "", "FEPS2Q": "", "NxFSales2Q": "", "NxFOP2Q": "",
+          "NxFOdP2Q": "", "NxFNp2Q": "", "NxFEPS2Q": "", "FSales": "", "FOP": "", "FOdP": "",
+          "FNP": "", "FEPS": "", "NxFSales": "", "NxFOP": "", "NxFOdP": "", "NxFNp": "",
+          "NxFEPS": "", "MatChgSub": "", "SigChgInC": "", "ChgByASRev": "", "ChgNoASRev": "",
+          "ChgAcEst": "", "RetroRst": "", "ShOutFY": "", "TrShFY": "", "AvgSh": "",
+          "NCSales": "", "NCOP": "", "NCOdP": "", "NCNP": "", "NCEPS": "", "NCTA": "",
+          "NCEq": "", "NCEqAR": "", "NCBPS": "", "FNCSales2Q": "", "FNCOP2Q": "",
+          "FNCOdP2Q": "", "FNCNP2Q": "", "FNCEPS2Q": "", "NxFNCSales2Q": "", "NxFNCOP2Q": "",
+          "NxFNCOdP2Q": "", "NxFNCNP2Q": "", "NxFNCEPS2Q": "", "FNCSales": "", "FNCOP": "",
+          "FNCOdP": "", "FNCNP": "", "FNCEPS": "", "NxFNCSales": "", "NxFNCOP": "",
+          "NxFNCOdP": "", "NxFNCNP": "", "NxFNCEPS": "", "ShEq": "1000000", "NCShEq": "",
+          "ROE": "0.1", "NCROE": ""
+        }"#;
+        let row: FinsSummary = serde_json::from_str(body).unwrap();
+        assert_eq!(row.code, "00010");
+        assert_eq!(row.sh_eq.as_f64(), Some(1_000_000.0));
+        assert_eq!(row.roe.as_f64(), Some(0.1));
+        assert!(row.nc_sh_eq.is_empty());
+        assert!(row.nc_roe.is_empty());
+    }
 }

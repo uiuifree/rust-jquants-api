@@ -3,7 +3,7 @@
 
 use jquants_api::{
     BulkGetQuery, CalendarQuery, CodeDateQuery, EarningsDateQuery, EdinetQuery, Error, FinsQuery,
-    JQuantsClient, MasterQuery, Plan,
+    JQuantsClient, MarginInterestQuery, MasterQuery, Plan,
 };
 use serde_json::json;
 use wiremock::matchers::{header, method, path, query_param, query_param_is_missing};
@@ -91,7 +91,8 @@ async fn master_decodes_all_fields() {
                 "Mkt": "0000",
                 "MktNm": "テスト市場",
                 "Mrgn": "1",
-                "MrgnNm": "貸借"
+                "MrgnNm": "貸借",
+                "ProdCat": "011"
             }],
             "pagination_key": null
         })))
@@ -107,6 +108,208 @@ async fn master_decodes_all_fields() {
     assert_eq!(rows[0].code, "00010");
     assert_eq!(rows[0].co_name, "テスト株式会社");
     assert_eq!(rows[0].market_code_name, "テスト市場");
+    assert_eq!(rows[0].product_category, "011");
+}
+
+#[tokio::test]
+async fn daily_bars_decodes_market_cap_and_ex_rights() {
+    let server = MockServer::start().await;
+
+    let mut with_values = daily_bar("2026-01-05", 105.0);
+    with_values["MktCap"] = json!(1000000.0);
+    with_values["ExRT"] = json!("1");
+    // ETF 等は MktCap が、権利落ちの無い日は ExRT が null で返る
+    let mut with_nulls = daily_bar("2026-01-06", 106.0);
+    with_nulls["MktCap"] = json!(null);
+    with_nulls["ExRT"] = json!(null);
+
+    Mock::given(method("GET"))
+        .and(path("/equities/bars/daily"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [with_values, with_nulls],
+            "pagination_key": null
+        })))
+        .mount(&server)
+        .await;
+
+    let bars = client_for(&server)
+        .daily_bars(&CodeDateQuery::code("00010"))
+        .await
+        .unwrap();
+
+    assert_eq!(bars[0].mkt_cap, Some(1_000_000.0));
+    assert_eq!(bars[0].ex_rt.as_deref(), Some("1"));
+    assert!(bars[1].mkt_cap.is_none());
+    assert!(bars[1].ex_rt.is_none());
+}
+
+#[tokio::test]
+async fn valuation_decodes_values_and_nulls() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/equities/valuation"))
+        .and(query_param("date", "2026-01-05"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [
+                {
+                    "Date": "2026-01-05",
+                    "Code": "00010",
+                    "EPS": 100.0,
+                    "FwdEPS": 110.0,
+                    "BPS": 1000.0,
+                    "ROE": 0.1,
+                    "FwdROE": 0.11,
+                    "PER": 10.0,
+                    "FwdPER": 9.09,
+                    "PBR": 1.0,
+                    "MktCap": 1000000.0
+                },
+                {
+                    // 算出対象外の銘柄（ETF 等）は指標がすべて null で返る
+                    "Date": "2026-01-05",
+                    "Code": "00020",
+                    "EPS": null,
+                    "FwdEPS": null,
+                    "BPS": null,
+                    "ROE": null,
+                    "FwdROE": null,
+                    "PER": null,
+                    "FwdPER": null,
+                    "PBR": null,
+                    "MktCap": null
+                }
+            ],
+            "pagination_key": null
+        })))
+        .mount(&server)
+        .await;
+
+    let rows = client_for(&server)
+        .valuation(&CodeDateQuery {
+            date: Some("2026-01-05".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].code, "00010");
+    assert_eq!(rows[0].eps, Some(100.0));
+    assert_eq!(rows[0].fwd_eps, Some(110.0));
+    assert_eq!(rows[0].bps, Some(1000.0));
+    assert_eq!(rows[0].roe, Some(0.1));
+    assert_eq!(rows[0].fwd_roe, Some(0.11));
+    assert_eq!(rows[0].per, Some(10.0));
+    assert_eq!(rows[0].fwd_per, Some(9.09));
+    assert_eq!(rows[0].pbr, Some(1.0));
+    assert_eq!(rows[0].mkt_cap, Some(1_000_000.0));
+    assert!(rows[1].eps.is_none());
+    assert!(rows[1].mkt_cap.is_none());
+}
+
+#[tokio::test]
+async fn margin_interest_decodes_daily_and_weekly_rows() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/markets/margin-interest"))
+        .and(query_param("code", "00010"))
+        .and(query_param("from", "2026-09-18"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [
+                {
+                    // 2026-09-24 以前（週末時点）の行は公表日と金額が null で返る
+                    "PubDate": null,
+                    "Date": "2026-09-18",
+                    "Code": "00010",
+                    "IssType": "2",
+                    "ShrtVol": 1000.0,
+                    "LongVol": 2000.0,
+                    "ShrtNegVol": 100.0,
+                    "LongNegVol": 200.0,
+                    "ShrtStdVol": 900.0,
+                    "LongStdVol": 1800.0,
+                    "ShrtVal": null,
+                    "LongVal": null,
+                    "ShrtNegVal": null,
+                    "LongNegVal": null,
+                    "ShrtStdVal": null,
+                    "LongStdVal": null
+                },
+                {
+                    "PubDate": "2026-09-28",
+                    "Date": "2026-09-25",
+                    "Code": "00010",
+                    "IssType": "2",
+                    "ShrtVol": 1000.0,
+                    "LongVol": 2000.0,
+                    "ShrtNegVol": 100.0,
+                    "LongNegVol": 200.0,
+                    "ShrtStdVol": 900.0,
+                    "LongStdVol": 1800.0,
+                    "ShrtVal": 1000000.0,
+                    "LongVal": 2000000.0,
+                    "ShrtNegVal": 100000.0,
+                    "LongNegVal": 200000.0,
+                    "ShrtStdVal": 900000.0,
+                    "LongStdVal": 1800000.0
+                }
+            ],
+            "pagination_key": null
+        })))
+        .mount(&server)
+        .await;
+
+    let rows = client_for(&server)
+        .margin_interest(&MarginInterestQuery {
+            code: Some("00010".into()),
+            from: Some("2026-09-18".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    assert_eq!(rows.len(), 2);
+    assert!(rows[0].pub_date.is_none());
+    assert_eq!(rows[0].shrt_vol.as_f64(), Some(1000.0));
+    assert!(rows[0].shrt_val.is_empty());
+    assert!(rows[0].long_std_val.is_empty());
+    assert_eq!(rows[1].pub_date.as_deref(), Some("2026-09-28"));
+    assert_eq!(rows[1].iss_type, "2");
+    assert_eq!(rows[1].shrt_val.as_f64(), Some(1_000_000.0));
+    assert_eq!(rows[1].long_val.as_f64(), Some(2_000_000.0));
+    assert_eq!(rows[1].shrt_neg_val.as_f64(), Some(100_000.0));
+    assert_eq!(rows[1].long_neg_val.as_f64(), Some(200_000.0));
+    assert_eq!(rows[1].shrt_std_val.as_f64(), Some(900_000.0));
+    assert_eq!(rows[1].long_std_val.as_f64(), Some(1_800_000.0));
+}
+
+#[tokio::test]
+async fn margin_interest_sends_published_date() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/markets/margin-interest"))
+        .and(query_param("published_date", "2026-09-28"))
+        .and(query_param_is_missing("date"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "data": [],
+            "pagination_key": null
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let rows = client_for(&server)
+        .margin_interest(&MarginInterestQuery {
+            published_date: Some("2026-09-28".into()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    assert!(rows.is_empty());
 }
 
 #[tokio::test]
@@ -397,20 +600,20 @@ async fn td_files_accepts_null_files() {
 
     Mock::given(method("GET"))
         .and(path("/td/files"))
-        .and(query_param("discNo", "20251104586107"))
+        .and(query_param("discNo", "20260105000001"))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-            "discNo": "20251104586107",
+            "discNo": "20260105000001",
             "files": null
         })))
         .mount(&server)
         .await;
 
     let files = client_for(&server)
-        .td_files("20251104586107", None)
+        .td_files("20260105000001", None)
         .await
         .unwrap();
 
-    assert_eq!(files.disc_no, "20251104586107");
+    assert_eq!(files.disc_no, "20260105000001");
     assert!(files.files.is_none());
 }
 
@@ -430,15 +633,15 @@ async fn edinet_accepts_null_string_fields() {
                 "FilerNameEn": null,
                 "DocTypeCode": "120",
                 "SubDate": "2026-01-05",
-                "SubTime": "15:19:00",
+                "SubTime": "15:00:00",
                 "PerSt": "2025-01-01",
                 "PerEn": "2025-12-31",
                 "Hldrs": [{
                     "Rank": 1,
                     "HldrName": "テスト保有者",
                     "HldrAddr": null,
-                    "ShsHeld": 207070600,
-                    "ShsRatio": 0.3835
+                    "ShsHeld": 2000000,
+                    "ShsRatio": 0.4
                 }]
             }],
             "pagination_key": null
@@ -454,8 +657,8 @@ async fn edinet_accepts_null_string_fields() {
     assert_eq!(docs.len(), 1);
     assert!(docs[0].code.is_empty()); // null は空文字列になる
     assert_eq!(&*docs[0].filer_name, "テスト株式会社");
-    assert_eq!(docs[0].hldrs[0].shs_held.as_f64(), Some(207_070_600.0));
-    assert_eq!(docs[0].hldrs[0].shs_ratio.as_f64(), Some(0.3835));
+    assert_eq!(docs[0].hldrs[0].shs_held.as_f64(), Some(2_000_000.0));
+    assert_eq!(docs[0].hldrs[0].shs_ratio.as_f64(), Some(0.4));
 }
 
 #[tokio::test]
@@ -474,12 +677,12 @@ async fn edinet_tolerates_missing_and_renamed_fields() {
                 "IsrName": "テスト株式会社",
                 "DocTypeCode": "350",
                 "SubDate": "2026-01-05",
-                "SubTime": "15:54:00",
+                "SubTime": "15:00:00",
                 "LargeHldgTypeCode": "1",
                 "DocTitle": "大量保有報告書",
                 "ChgRsn": null,
                 "TotalShsHeld": null,
-                "TotalOutStks": 40050000,
+                "TotalOutStks": 40000000,
                 "Hldrs": [{
                     "HldrName": "テスト投資会社",
                     "HldrEdinetCode": "E00002",
@@ -501,7 +704,7 @@ async fn edinet_tolerates_missing_and_renamed_fields() {
     // 欠落した項目は空、null も空になる
     assert!(docs[0].total_shs_ratio.is_empty());
     assert!(docs[0].total_shs_held.is_empty());
-    assert_eq!(docs[0].total_out_stks.as_f64(), Some(40_050_000.0));
+    assert_eq!(docs[0].total_out_stks.as_f64(), Some(40_000_000.0));
     // 別名でも保有者区分が読める
     assert_eq!(&*docs[0].hldrs[0].hldr_type_code, "2");
     assert!(docs[0].hldrs[0].shs_held.is_empty());
