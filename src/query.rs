@@ -11,7 +11,7 @@ fn push<'a>(params: &mut Params<'a>, key: &'static str, value: &'a Option<String
 }
 
 /// 銘柄コード・日付・期間の共通条件
-/// （日足・分足・売買内訳・信用残・配当・指数日足で使用）
+/// （日足・分足・バリュエーション指標・売買内訳・日々公表信用取引残高・配当・指数日足で使用）
 #[derive(Debug, Clone, Default)]
 pub struct CodeDateQuery {
     /// 銘柄コード（例: "7203"）
@@ -99,6 +99,35 @@ impl CalendarQuery {
         push(&mut p, "holidayDivision", &self.holiday_division);
         push(&mut p, "from", &self.from);
         push(&mut p, "to", &self.to);
+        p
+    }
+}
+
+/// 信用取引残高（`/markets/margin-interest`）の条件。
+/// API の仕様上 `code` / `date` / `published_date` のいずれかの指定が必須。
+/// `published_date` は `date` / `from` / `to` と同時指定できない（API 側でエラーになる）
+#[derive(Debug, Clone, Default)]
+pub struct MarginInterestQuery {
+    /// 銘柄コード（例: "7203"）
+    pub code: Option<String>,
+    /// 申込日 (YYYY-MM-DD または YYYYMMDD)
+    pub date: Option<String>,
+    /// 期間の開始日 (YYYY-MM-DD または YYYYMMDD)
+    pub from: Option<String>,
+    /// 期間の終了日 (YYYY-MM-DD または YYYYMMDD)
+    pub to: Option<String>,
+    /// 公表日 (YYYY-MM-DD または YYYYMMDD)。2026-09-25 申込分以降の行だけが対象
+    pub published_date: Option<String>,
+}
+
+impl MarginInterestQuery {
+    pub(crate) fn params(&self) -> Params<'_> {
+        let mut p = Vec::new();
+        push(&mut p, "code", &self.code);
+        push(&mut p, "date", &self.date);
+        push(&mut p, "from", &self.from);
+        push(&mut p, "to", &self.to);
+        push(&mut p, "published_date", &self.published_date);
         p
     }
 }
@@ -391,6 +420,19 @@ mod tests {
     fn code_shortcut() {
         let q = CodeDateQuery::code("7203");
         assert_eq!(q.params(), vec![("code", "7203")]);
+    }
+
+    #[test]
+    fn margin_interest_query_sends_published_date() {
+        let q = MarginInterestQuery {
+            code: Some("86970".into()),
+            published_date: Some("2026-09-28".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            q.params(),
+            vec![("code", "86970"), ("published_date", "2026-09-28")]
+        );
     }
 
     #[test]

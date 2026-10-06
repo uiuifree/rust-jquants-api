@@ -153,36 +153,59 @@ pub struct MarginAlert {
     pub tse_mrgn_reg_cls: String,
 }
 
-/// 信用取引週末残高（`/markets/margin-interest`）
+/// 信用取引残高（`/markets/margin-interest`）。
+/// 2026-09-25 申込分以降は日次、それ以前は週末時点のデータ。
+/// 公表日と金額 6 項目は日次化以降の行にしか入らない
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MarginInterest {
-    /// 日付 (YYYY-MM-DD)
+    /// 公表日 (YYYY-MM-DD)。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "PubDate")]
+    pub pub_date: Option<String>,
+    /// 申込日付 (YYYY-MM-DD)
     #[serde(rename = "Date")]
     pub date: String,
     /// 銘柄コード
     #[serde(rename = "Code")]
     pub code: String,
-    /// 空売り残高株数
-    #[serde(rename = "ShrtVol")]
-    pub shrt_vol: FlexString,
-    /// ロング残高株数
-    #[serde(rename = "LongVol")]
-    pub long_vol: FlexString,
-    /// 制度空売り残高株数
-    #[serde(rename = "ShrtNegVol")]
-    pub shrt_neg_vol: FlexString,
-    /// 制度ロング残高株数
-    #[serde(rename = "LongNegVol")]
-    pub long_neg_vol: FlexString,
-    /// 一般空売り残高株数
-    #[serde(rename = "ShrtStdVol")]
-    pub shrt_std_vol: FlexString,
-    /// 一般ロング残高株数
-    #[serde(rename = "LongStdVol")]
-    pub long_std_vol: FlexString,
-    /// 銘柄種別（信用/貸借）
+    /// 銘柄区分（1: 信用銘柄、2: 貸借銘柄、3: その他）
     #[serde(rename = "IssType")]
     pub iss_type: String,
+    /// 売合計信用取引残高（株数）
+    #[serde(rename = "ShrtVol")]
+    pub shrt_vol: FlexString,
+    /// 買合計信用取引残高（株数）
+    #[serde(rename = "LongVol")]
+    pub long_vol: FlexString,
+    /// 売一般信用取引残高（株数）
+    #[serde(rename = "ShrtNegVol")]
+    pub shrt_neg_vol: FlexString,
+    /// 買一般信用取引残高（株数）
+    #[serde(rename = "LongNegVol")]
+    pub long_neg_vol: FlexString,
+    /// 売制度信用取引残高（株数）
+    #[serde(rename = "ShrtStdVol")]
+    pub shrt_std_vol: FlexString,
+    /// 買制度信用取引残高（株数）
+    #[serde(rename = "LongStdVol")]
+    pub long_std_vol: FlexString,
+    /// 売合計信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "ShrtVal")]
+    pub shrt_val: FlexString,
+    /// 買合計信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "LongVal")]
+    pub long_val: FlexString,
+    /// 売一般信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "ShrtNegVal")]
+    pub shrt_neg_val: FlexString,
+    /// 買一般信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "LongNegVal")]
+    pub long_neg_val: FlexString,
+    /// 売制度信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "ShrtStdVal")]
+    pub shrt_std_val: FlexString,
+    /// 買制度信用取引残高（金額）。2026-09-25 申込分以降のみ（それ以前は null）
+    #[serde(rename = "LongStdVal")]
+    pub long_std_val: FlexString,
 }
 
 /// 業種別空売り比率（`/markets/short-ratio`）

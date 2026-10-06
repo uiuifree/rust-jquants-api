@@ -43,6 +43,9 @@ pub struct StockMaster {
     /// 信用区分名（信用/貸借）
     #[serde(rename = "MrgnNm")]
     pub margin_code_name: String,
+    /// 商品区分コード
+    #[serde(rename = "ProdCat")]
+    pub product_category: String,
 }
 
 /// 株価日足（`/equities/bars/daily`）。前後場・調整値を含む
@@ -174,6 +177,53 @@ pub struct DailyBar {
     /// 後場調整後出来高
     #[serde(rename = "AAdjVo")]
     pub afternoon_adj_volume: Option<f64>,
+    /// 時価総額（百万円）。指数用株式数が無い銘柄（ETF・ETN等）や取引が存在しない日は null
+    #[serde(rename = "MktCap")]
+    pub mkt_cap: Option<f64>,
+    /// 権利落種類（1: 株式分割 / 2: 株式併合 / 3: ライツイシュー。株式無償割当は 1 に含む）。
+    /// 該当する権利落ちが無い日は null
+    #[serde(rename = "ExRT")]
+    pub ex_rt: Option<String>,
+}
+
+/// バリュエーション指標（`/equities/valuation`）。
+/// 実績値は直近12ヶ月（TTM）、`fwd_*` は進行期の予想にもとづく。
+/// 算出対象外の銘柄（ETF 等）は指標が null で返る
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Valuation {
+    /// 日付 (YYYY-MM-DD)
+    #[serde(rename = "Date")]
+    pub date: String,
+    /// 銘柄コード
+    #[serde(rename = "Code")]
+    pub code: String,
+    /// 1株当たり利益（実績・円）。直近12ヶ月（TTM）の純利益にもとづく
+    #[serde(rename = "EPS")]
+    pub eps: Option<f64>,
+    /// 1株当たり利益（予想・円）。進行期の予想純利益にもとづく
+    #[serde(rename = "FwdEPS")]
+    pub fwd_eps: Option<f64>,
+    /// 1株当たり純資産（円）。直近開示の期末自己資本にもとづく
+    #[serde(rename = "BPS")]
+    pub bps: Option<f64>,
+    /// 自己資本利益率（実績・小数）。0.2310 は 23.1% を表す（パーセントではない）
+    #[serde(rename = "ROE")]
+    pub roe: Option<f64>,
+    /// 自己資本利益率（予想・小数）。0.2310 は 23.1% を表す（パーセントではない）
+    #[serde(rename = "FwdROE")]
+    pub fwd_roe: Option<f64>,
+    /// 株価収益率（実績・倍）。株価は当日終値
+    #[serde(rename = "PER")]
+    pub per: Option<f64>,
+    /// 株価収益率（予想・倍）。株価は当日終値
+    #[serde(rename = "FwdPER")]
+    pub fwd_per: Option<f64>,
+    /// 株価純資産倍率（倍）。株価は当日終値
+    #[serde(rename = "PBR")]
+    pub pbr: Option<f64>,
+    /// 時価総額（百万円）。自己株式を控除した株式数×当日終値
+    #[serde(rename = "MktCap")]
+    pub mkt_cap: Option<f64>,
 }
 
 /// 前場終値時点の株価（`/equities/bars/daily/am`）
@@ -237,7 +287,7 @@ pub struct MinuteBar {
     pub turnover: f64,
 }
 
-/// 決算発表予定（`/equities/earnings-calendar`）
+/// 決算発表予定（`/equities/earnings-calendar`）。3・9月期決算会社のみが対象
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EarningsCalendar {
     /// 決算発表予定日 (YYYY-MM-DD)

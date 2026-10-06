@@ -53,6 +53,12 @@ async fn main() -> Result<(), jquants_api::Error> {
   （バグではない）。プラン別範囲: https://jpx-jquants.com/ja/spec/data-spec
 - EDINET 系（`edinet_*`）は Standard プラン以上。`fins_earnings_date` は
   code / date / scheduled_date のいずれか 1 つの指定が必須
+- `earnings_calendar` は 3・9 月期決算会社のみ。決算期によらず取るなら `fins_earnings_date`
+- `valuation`（PER・PBR・ROE 等）は code / date のいずれかが必須。ETF 等は指標が `None`。
+  ROE は小数（0.12 = 12%）
+- `margin_interest` は 2026-09-25 申込分から日次（それ以前は週末時点）。
+  `MarginInterestQuery` の `published_date` は date / from / to と同時に指定できない。
+  公表日（`pub_date`）と金額（`*_val`）は日次化以降の行にしか入らない
 - 株価ティック（/equities/trades）は CSV 提供のみで専用メソッドは無い。
   `bulk_list` / `bulk_get` に endpoint "/equities/trades" を指定して取得する
 - HTTP 210 は「データ未提供」。エラーにならず空の結果が返る仕様

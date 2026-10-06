@@ -76,10 +76,10 @@ pub use models::{
     FinsDividend, FinsSummary, FlexString, FuturesBar, IndexDailyBar, InvestorType,
     LargeVolumeHolder, LargeVolumeShareholdersDoc, MajorShareholder, MajorShareholdersDoc,
     MarginAlert, MarginInterest, MinuteBar, Options225Bar, OptionsBar, PubReason, ShortRatio,
-    ShortSaleReport, StockMaster, TdBulk, TdFiles, TdFilesInner, TdList, TopixDailyBar,
+    ShortSaleReport, StockMaster, TdBulk, TdFiles, TdFilesInner, TdList, TopixDailyBar, Valuation,
 };
 pub use query::{
     BulkGetQuery, BulkListQuery, CalendarQuery, CodeDateQuery, EarningsDateQuery, EdinetQuery,
-    FinsQuery, FuturesBarsQuery, InvestorTypesQuery, MasterQuery, OptionsBarsQuery, RangeQuery,
-    ShortRatioQuery, ShortSaleReportQuery, TdListQuery,
+    FinsQuery, FuturesBarsQuery, InvestorTypesQuery, MarginInterestQuery, MasterQuery,
+    OptionsBarsQuery, RangeQuery, ShortRatioQuery, ShortSaleReportQuery, TdListQuery,
 };

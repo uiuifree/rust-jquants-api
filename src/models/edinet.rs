@@ -406,28 +406,28 @@ pub struct LargeVolumeHolder {
 mod tests {
     use super::*;
 
-    /// 2021-07-02 の大量保有報告書で実際に落ちた応答。
+    /// 大量保有報告書で実際に落ちた応答の形（値は架空）。
     /// `ChgRsn` / `HldrCode` / `TotalShsRatioLast` が null で返る。
     /// `Code`・`HldrTypeCode` に続く3度目の同じ失敗だったため、
     /// 素の String を全廃し Vec も null を受けるようにした
     #[test]
     fn large_volume_accepts_nulls_seen_in_production() {
         let body = r#"{
-          "DocId": "S100LIG7", "Code": "40690", "EdinetCode": "E36653",
-          "IsrName": "株式会社ＢｌｕｅＭｅｍｅ", "DocTypeCode": "350",
-          "SubDate": "2021-07-02", "SubTime": "13:47:00",
+          "DocId": "S000TEST", "Code": "00010", "EdinetCode": "E00001",
+          "IsrName": "テスト株式会社", "DocTypeCode": "350",
+          "SubDate": "2026-01-05", "SubTime": "13:00:00",
           "LargeHldgTypeCode": "1", "DocTitle": "大量保有報告書",
-          "ChgRsn": null, "TotalShsHeld": 742500, "TotalShsRatio": 0.2267,
-          "TotalShsRatioLast": null, "TotalOutStks": 3199946,
+          "ChgRsn": null, "TotalShsHeld": 700000, "TotalShsRatio": 0.2,
+          "TotalShsRatioLast": null, "TotalOutStks": 3500000,
           "Hldrs": [{
-            "HldrName": "松岡 真功", "HldrNameEn": "Masanori Matsuoka",
-            "HldrEdinetCode": "E36650", "HldrCode": null,
+            "HldrName": "テスト保有者", "HldrNameEn": "Test Holder",
+            "HldrEdinetCode": "E00002", "HldrCode": null,
             "LargeHldrTypeCode": "1", "LargeHldrTypeRaw": "個人",
             "AcqDisp": null, "BrwList": null, "CredList": null
           }]
         }"#;
         let d: LargeVolumeShareholdersDoc = serde_json::from_str(body).unwrap();
-        assert_eq!(&*d.doc_id, "S100LIG7");
+        assert_eq!(&*d.doc_id, "S000TEST");
         assert!(d.chg_rsn.is_empty(), "null は空文字列になる");
         assert!(d.total_shs_ratio_last.is_empty());
         assert_eq!(d.hldrs.len(), 1);

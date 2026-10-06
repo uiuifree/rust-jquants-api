@@ -5,12 +5,12 @@ use crate::models::{
     CrossShareholdingsDoc, CursorPage, DailyBar, EarningsCalendar, EarningsDate, FinsDetails,
     FinsDividend, FinsSummary, FuturesBar, IndexDailyBar, InvestorType, LargeVolumeShareholdersDoc,
     MajorShareholdersDoc, MarginAlert, MarginInterest, MinuteBar, Options225Bar, OptionsBar,
-    ShortRatio, ShortSaleReport, StockMaster, TdBulk, TdFiles, TdList, TopixDailyBar,
+    ShortRatio, ShortSaleReport, StockMaster, TdBulk, TdFiles, TdList, TopixDailyBar, Valuation,
 };
 use crate::query::{
     BulkGetQuery, BulkListQuery, CalendarQuery, CodeDateQuery, EarningsDateQuery, EdinetQuery,
-    FinsQuery, FuturesBarsQuery, InvestorTypesQuery, MasterQuery, OptionsBarsQuery, RangeQuery,
-    ShortRatioQuery, ShortSaleReportQuery, TdListQuery,
+    FinsQuery, FuturesBarsQuery, InvestorTypesQuery, MarginInterestQuery, MasterQuery,
+    OptionsBarsQuery, RangeQuery, ShortRatioQuery, ShortSaleReportQuery, TdListQuery,
 };
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -215,7 +215,14 @@ impl JQuantsClient {
         self.get_all("/equities/bars/minute", &query.params()).await
     }
 
-    /// 決算発表予定
+    /// バリュエーション指標（EPS・BPS・ROE・PER・PBR・時価総額と予想値）。
+    /// API の仕様上 `code` / `date` のいずれかの指定が必須
+    pub async fn valuation(&self, query: &CodeDateQuery) -> Result<Vec<Valuation>, Error> {
+        self.get_all("/equities/valuation", &query.params()).await
+    }
+
+    /// 決算発表予定（3・9月期決算会社のみ。決算期によらず取るなら
+    /// [`fins_earnings_date`](Self::fins_earnings_date)）
     pub async fn earnings_calendar(&self) -> Result<Vec<EarningsCalendar>, Error> {
         self.get_all("/equities/earnings-calendar", &[]).await
     }
@@ -246,10 +253,11 @@ impl JQuantsClient {
         self.get_all("/markets/margin-alert", &query.params()).await
     }
 
-    /// 信用取引週末残高
+    /// 信用取引残高（2026-09-25 申込分以降は日次、それ以前は週末時点）。
+    /// API の仕様上 `code` / `date` / `published_date` のいずれかの指定が必須
     pub async fn margin_interest(
         &self,
-        query: &CodeDateQuery,
+        query: &MarginInterestQuery,
     ) -> Result<Vec<MarginInterest>, Error> {
         self.get_all("/markets/margin-interest", &query.params())
             .await
